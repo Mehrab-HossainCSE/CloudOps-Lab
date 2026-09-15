@@ -1,0 +1,90 @@
+services:
+  # ---------------------------------------------------------
+  # 1. PostgreSQL Database
+  # ---------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: usermanagement-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: usermanagement
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d usermanagement"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - usermanagement-net
+
+  # ---------------------------------------------------------
+  # 2. OpenTelemetry Tracing & Observability (Jaeger)
+  # ---------------------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: usermanagement-jaeger
+    restart: unless-stopped
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686" # Jaeger Web UI for inspecting traces
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    networks:
+      - usermanagement-net
+
+  # ---------------------------------------------------------
+  # 3. Backend - .NET 8 Web API
+  # ---------------------------------------------------------
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: usermanagement-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=usermanagement;Username=postgres;Password=postgres;Include Error Detail=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - Cors__AllowedOrigins__0=http://localhost:4200
+      - Cors__AllowedOrigins__1=http://localhost
+      - Cors__AllowedOrigins__2=http://localhost:80
+    ports:
+      - "5000:5000"
+    networks:
+      - usermanagement-net
+
+  # ---------------------------------------------------------
+  # 4. Frontend - Angular SPA (Nginx)
+  # ---------------------------------------------------------
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: usermanagement-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+      - "80:80"
+    networks:
+      - usermanagement-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  usermanagement-net:
+    driver: bridge

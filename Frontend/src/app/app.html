@@ -1,0 +1,208 @@
+<div class="app-container">
+  <!-- Top Navigation / Header -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-icon">👤</div>
+      <div>
+        <h1 class="brand-title">User Management System</h1>
+        <p class="brand-subtitle">Full-stack Angular + .NET 8 Web API + PostgreSQL + OpenTelemetry</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      <span class="badge-dot"></span>
+      <span class="badge-text">{{ users.length }} {{ users.length === 1 ? 'User' : 'Users' }} Registered</span>
+    </div>
+  </header>
+
+  <!-- Notification Banners -->
+  <div class="notifications-container">
+    @if (successMessage) {
+      <div class="alert alert-success" role="alert">
+        <span class="alert-icon">✓</span>
+        <span class="alert-text">{{ successMessage }}</span>
+        <button type="button" class="alert-close" (click)="clearMessages()" aria-label="Close notification">&times;</button>
+      </div>
+    }
+
+    @if (errorMessage) {
+      <div class="alert alert-danger" role="alert">
+        <span class="alert-icon">⚠</span>
+        <span class="alert-text">{{ errorMessage }}</span>
+        <button type="button" class="alert-close" (click)="clearMessages()" aria-label="Close notification">&times;</button>
+      </div>
+    }
+  </div>
+
+  <!-- Main Content Grid -->
+  <main class="main-grid">
+    <!-- Left Column: Add User Form -->
+    <section class="card form-card">
+      <div class="card-header">
+        <h2 class="card-title">Add New User</h2>
+        <p class="card-desc">Enter the details below to register a new user.</p>
+      </div>
+
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()" novalidate class="user-form">
+        <!-- Name Input -->
+        <div class="form-group">
+          <label for="name" class="form-label">
+            Full Name <span class="required-star">*</span>
+          </label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            placeholder="e.g. Sarah Connor"
+            class="form-input"
+            [class.input-error]="name?.invalid && (name?.dirty || name?.touched)"
+          />
+          @if (name?.invalid && (name?.dirty || name?.touched)) {
+            <div class="error-feedback">
+              @if (name?.errors?.['required']) {
+                <span>Name is required.</span>
+              }
+              @if (name?.errors?.['maxlength']) {
+                <span>Name cannot exceed 150 characters.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Email Input -->
+        <div class="form-group">
+          <label for="email" class="form-label">
+            Email Address <span class="required-star">*</span>
+          </label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="e.g. sarah@example.com"
+            class="form-input"
+            [class.input-error]="email?.invalid && (email?.dirty || email?.touched)"
+          />
+          @if (email?.invalid && (email?.dirty || email?.touched)) {
+            <div class="error-feedback">
+              @if (email?.errors?.['required']) {
+                <span>Email is required.</span>
+              }
+              @if (email?.errors?.['email']) {
+                <span>Please enter a valid email address.</span>
+              }
+              @if (email?.errors?.['maxlength']) {
+                <span>Email cannot exceed 250 characters.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="isSubmitting || userForm.invalid"
+          >
+            @if (isSubmitting) {
+              <span class="spinner-small"></span>
+              <span>Adding...</span>
+            } @else {
+              <span>Add User</span>
+            }
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="userForm.reset(); clearMessages()"
+            [disabled]="isSubmitting"
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Right Column: Users List -->
+    <section class="card list-card">
+      <div class="card-header list-header">
+        <div>
+          <h2 class="card-title">User Directory</h2>
+          <p class="card-desc">All registered users currently stored in PostgreSQL.</p>
+        </div>
+        <button
+          type="button"
+          class="btn btn-refresh"
+          (click)="loadUsers()"
+          [disabled]="isLoading"
+          title="Refresh user list"
+        >
+          ↻ Refresh
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      @if (isLoading) {
+        <div class="loading-container">
+          <div class="spinner-large"></div>
+          <p>Loading users from database...</p>
+        </div>
+      }
+
+      <!-- Empty State -->
+      @if (!isLoading && users.length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <h3 class="empty-title">No Users Found</h3>
+          <p class="empty-text">There are currently no users in the database. Use the form on the left to add one!</p>
+        </div>
+      }
+
+      <!-- Users Table -->
+      @if (!isLoading && users.length > 0) {
+        <div class="table-responsive">
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th class="th-id">ID</th>
+                <th class="th-name">Name</th>
+                <th class="th-email">Email</th>
+                <th class="th-action">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users; track user.id) {
+                <tr class="table-row">
+                  <td class="td-id">
+                    <span class="id-badge">#{{ user.id }}</span>
+                  </td>
+                  <td class="td-name">
+                    <strong>{{ user.name }}</strong>
+                  </td>
+                  <td class="td-email">
+                    <a href="mailto:{{ user.email }}" class="email-link">{{ user.email }}</a>
+                  </td>
+                  <td class="td-action">
+                    <button
+                      type="button"
+                      class="btn btn-danger btn-sm"
+                      (click)="confirmDelete(user.id, user.name)"
+                      [disabled]="deletingUserId === user.id"
+                    >
+                      @if (deletingUserId === user.id) {
+                        <span class="spinner-small"></span>
+                        <span>Deleting...</span>
+                      } @else {
+                        <span>Delete</span>
+                      }
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</div>
