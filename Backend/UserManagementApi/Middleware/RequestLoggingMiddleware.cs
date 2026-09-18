@@ -8,6 +8,10 @@ public class RequestLoggingMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestLoggingMiddleware> _logger;
 
+    // Infrastructure endpoints polled on a timer (Prometheus scrapes, container probes).
+    // Logging and counting them would drown out real traffic.
+    private static readonly string[] UninterestingPaths = { "/metrics", "/health" };
+
     public RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
     {
         _next = next;
@@ -16,6 +20,13 @@ public class RequestLoggingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        var path = context.Request.Path;
+        if (UninterestingPaths.Any(p => path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase)))
+        {
+            await _next(context);
+            return;
+        }
+
         var stopwatch = Stopwatch.StartNew();
         var httpMethod = context.Request.Method;
         var endpoint = context.Request.Path.Value ?? "/";

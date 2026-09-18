@@ -63,6 +63,7 @@ services:
       - "5000:5000"
     networks:
       - usermanagement-net
+      - observability
 
   # ---------------------------------------------------------
   # 4. Frontend - Angular SPA (Nginx)
@@ -88,3 +89,6 @@ volumes:
 networks:
   usermanagement-net:
     driver: bridge
+  observability:
+    external: true
+    name: incident-observability

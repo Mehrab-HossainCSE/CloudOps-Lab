@@ -49,6 +49,7 @@ builder.Services.AddOpenTelemetry()
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddRuntimeInstrumentation()
+            .AddPrometheusExporter() // Exposes the /metrics scrape endpoint for Prometheus
             .AddConsoleExporter();
 
         if (Uri.TryCreate(otlpEndpointUri, UriKind.Absolute, out var uri))
@@ -159,6 +160,9 @@ app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseCors(corsPolicyName);
 
 app.MapControllers();
+
+// Prometheus scrape endpoint (GET /metrics) consumed by the prometheus service
+app.MapPrometheusScrapingEndpoint();
 
 // Health check endpoint for container probes
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));

@@ -24,8 +24,8 @@ public class DatabaseInitializer
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        const int maxRetries = 10;
-        var retryDelay = TimeSpan.FromSeconds(2);
+        const int maxRetries = 2;
+        var retryDelay = TimeSpan.FromSeconds(1);
 
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
@@ -61,6 +61,28 @@ public class DatabaseInitializer
                     createCmd.CommandText = CreateUsersTableSql;
                     await createCmd.ExecuteNonQueryAsync(cancellationToken);
                     _logger.LogInformation("DatabaseInitializer: Table 'Users' created successfully.");
+                }
+
+                // Check if table is empty and seed initial sample users
+                const string countSql = "SELECT COUNT(1) FROM Users;";
+                await using var countCmd = connection.CreateCommand();
+                countCmd.CommandText = countSql;
+                var countObj = await countCmd.ExecuteScalarAsync(cancellationToken);
+                long rowCount = Convert.ToInt64(countObj);
+
+                if (rowCount == 0)
+                {
+                    _logger.LogInformation("DatabaseInitializer: Seeding initial users into empty Users table...");
+                    const string seedSql = """
+                        INSERT INTO Users (Name, Email) VALUES 
+                        ('Sarah Connor', 'sarah.connor@example.com'),
+                        ('John Doe', 'john.doe@example.com'),
+                        ('Jane Smith', 'jane.smith@example.com');
+                        """;
+                    await using var seedCmd = connection.CreateCommand();
+                    seedCmd.CommandText = seedSql;
+                    await seedCmd.ExecuteNonQueryAsync(cancellationToken);
+                    _logger.LogInformation("DatabaseInitializer: Initial sample users seeded successfully.");
                 }
 
                 return;
