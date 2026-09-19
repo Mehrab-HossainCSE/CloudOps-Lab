@@ -118,10 +118,10 @@ jobs:
 
       - name: Copy monitoring compose file to EC2
         run: |
-          echo "${{ secrets.AWS_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
-          scp -o StrictHostKeyChecking=no -i private_key.pem \
-            compose.monitoring.yaml \
+            echo "${{ secrets.AWS_KEY }}" > private_key.pem
+            chmod 600 private_key.pem
+            scp -o StrictHostKeyChecking=no -i private_key.pem \
+            monitoring/compose.monitoring.yaml \
             ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}:${{ vars.DEPLOY_PATH }}/compose.monitoring.yaml
 
       - name: Deploy Monitoring to EC2
