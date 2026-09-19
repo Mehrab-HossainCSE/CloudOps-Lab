@@ -42,9 +42,7 @@ services:
   # 3. Backend - .NET 8 Web API
   # ---------------------------------------------------------
   backend:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE}
     container_name: usermanagement-backend
     restart: unless-stopped
     depends_on:
@@ -69,9 +67,7 @@ services:
   # 4. Frontend - Angular SPA (Nginx)
   # ---------------------------------------------------------
   frontend:
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile
+    image: ${FRONTEND_IMAGE}
     container_name: usermanagement-frontend
     restart: unless-stopped
     depends_on:
