@@ -27,17 +27,13 @@ jobs:
 
       - name: Build and Push Backend Image
         run: |
-            IMAGE="${{ env.BACKEND_IMAGE }}:latest"
-            echo "Building image: $IMAGE"
-            docker build -t "$IMAGE" ./Backend
-            docker push "$IMAGE"
+          docker build -t ${{ env.BACKEND_IMAGE }}:latest ./Backend
+          docker push ${{ env.BACKEND_IMAGE }}:latest
 
       - name: Build and Push Frontend Image
         run: |
-            IMAGE="${{ env.FRONTEND_IMAGE }}:latest"
-            echo "Building image: $IMAGE"
-            docker build -t "$IMAGE" ./Frontend
-            docker push "$IMAGE"
+          docker build -t ${{ env.FRONTEND_IMAGE }}:latest ./Frontend
+          docker push ${{ env.FRONTEND_IMAGE }}:latest
 
   # ---------------------------------------------------------
   # 2. Deploy Application stack first
@@ -116,24 +112,25 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Copy monitoring compose file to EC2
+      - name: Copy monitoring folder to EC2
         run: |
-            echo "${{ secrets.AWS_KEY }}" > private_key.pem
-            chmod 600 private_key.pem
-            scp -o StrictHostKeyChecking=no -i private_key.pem \
-            monitoring/compose.monitoring.yaml \
-            ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}:${{ vars.DEPLOY_PATH }}/compose.monitoring.yaml
+          echo "${{ secrets.AWS_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          # -r copies the whole monitoring/ tree: compose.monitoring.yaml PLUS
+          # prometheus/, loki/, alloy/, grafana/provisioning, grafana/dashboards
+          # which the compose file mounts as relative-path volumes.
+          scp -r -o StrictHostKeyChecking=no -i private_key.pem \
+            monitoring \
+            ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}:${{ vars.DEPLOY_PATH }}/monitoring
 
       - name: Deploy Monitoring to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << EOF
 
-            cd ${{ vars.DEPLOY_PATH }}
+            cd ${{ vars.DEPLOY_PATH }}/monitoring
 
-            cat > .env.monitoring << ENVEOF
-            GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
-            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-            ENVEOF
+            printf 'GRAFANA_ADMIN_USER=%s\n' "${{ secrets.GRAFANA_ADMIN_USER }}" > .env.monitoring
+            printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> .env.monitoring
 
             sudo docker compose -f compose.monitoring.yaml --env-file .env.monitoring up -d
 
