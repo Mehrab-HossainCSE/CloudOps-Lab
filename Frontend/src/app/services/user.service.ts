@@ -19,9 +19,9 @@ export class UserService {
 
   // When running ng serve on port 4200, target backend at localhost:5000.
   // In Docker / Production behind reverse proxy, target /api/users directly.
-  private readonly apiUrl = typeof window !== 'undefined' && window.location.port === '4200'
-    ? 'http://localhost:5000/api/users'
-    : '/api/users';
+ private readonly apiUrl = typeof window !== 'undefined' && window.location.port === '4200'
+  ? 'http://localhost:5000/api/users'
+  : 'http://54.245.181.61:31100/api/users';
 
   /**
    * Fetch all users from the backend API.
