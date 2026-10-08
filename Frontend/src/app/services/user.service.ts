@@ -21,7 +21,7 @@ export class UserService {
   // In Docker / Production behind reverse proxy, target /api/users directly.
  private readonly apiUrl = typeof window !== 'undefined' && window.location.port === '4200'
   ? 'http://localhost:5000/api/users'
-  : 'http://54.245.181.61:31100/api/users';
+  : 'http://54.245.181.61:8080/api/users';
 
   /**
    * Fetch all users from the backend API.
