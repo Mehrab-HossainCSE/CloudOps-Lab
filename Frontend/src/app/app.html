@@ -1,208 +1,741 @@
 <div class="app-container">
-  <!-- Top Navigation / Header -->
+  <!-- Top Header / Navigation -->
   <header class="app-header">
     <div class="header-brand">
-      <div class="brand-icon">👤</div>
+      <div class="brand-icon">⚡</div>
       <div>
-        <h1 class="brand-title">User Management System</h1>
-        <p class="brand-subtitle">Full-stack Angular + .NET 8 Web API + PostgreSQL + OpenTelemetry</p>
+        <h1 class="brand-title">Enterprise Management Console</h1>
+        <p class="brand-subtitle">
+          Dual Backend Microservices: User Service &amp; Employee Service
+        </p>
       </div>
     </div>
-    <div class="header-badge">
-      <span class="badge-dot"></span>
-      <span class="badge-text">{{ users.length }} {{ users.length === 1 ? 'User' : 'Users' }} Registered</span>
+    <div class="header-badges">
+      <div class="header-badge badge-user-theme">
+        <span class="badge-dot dot-user"></span>
+        <span class="badge-text"
+          >{{ users.length }} {{ users.length === 1 ? 'User' : 'Users' }}</span
+        >
+      </div>
+      <div class="header-badge badge-emp-theme">
+        <span class="badge-dot dot-emp"></span>
+        <span class="badge-text"
+          >{{ employees.length }} {{ employees.length === 1 ? 'Employee' : 'Employees' }}</span
+        >
+      </div>
     </div>
   </header>
 
-  <!-- Notification Banners -->
-  <div class="notifications-container">
-    @if (successMessage) {
-      <div class="alert alert-success" role="alert">
-        <span class="alert-icon">✓</span>
-        <span class="alert-text">{{ successMessage }}</span>
-        <button type="button" class="alert-close" (click)="clearMessages()" aria-label="Close notification">&times;</button>
-      </div>
-    }
-
-    @if (errorMessage) {
-      <div class="alert alert-danger" role="alert">
-        <span class="alert-icon">⚠</span>
-        <span class="alert-text">{{ errorMessage }}</span>
-        <button type="button" class="alert-close" (click)="clearMessages()" aria-label="Close notification">&times;</button>
-      </div>
-    }
-  </div>
-
-  <!-- Main Content Grid -->
-  <main class="main-grid">
-    <!-- Left Column: Add User Form -->
-    <section class="card form-card">
-      <div class="card-header">
-        <h2 class="card-title">Add New User</h2>
-        <p class="card-desc">Enter the details below to register a new user.</p>
-      </div>
-
-      <form [formGroup]="userForm" (ngSubmit)="onSubmit()" novalidate class="user-form">
-        <!-- Name Input -->
-        <div class="form-group">
-          <label for="name" class="form-label">
-            Full Name <span class="required-star">*</span>
-          </label>
-          <input
-            id="name"
-            type="text"
-            formControlName="name"
-            placeholder="e.g. Sarah Connor"
-            class="form-input"
-            [class.input-error]="name?.invalid && (name?.dirty || name?.touched)"
-          />
-          @if (name?.invalid && (name?.dirty || name?.touched)) {
-            <div class="error-feedback">
-              @if (name?.errors?.['required']) {
-                <span>Name is required.</span>
-              }
-              @if (name?.errors?.['maxlength']) {
-                <span>Name cannot exceed 150 characters.</span>
+  <!-- Side-by-Side Dual Panels Container -->
+  <main class="panels-grid">
+    <!-- ======================================================== -->
+    <!-- LEFT PANEL: USER MANAGEMENT -->
+    <!-- ======================================================== -->
+    <section class="panel-card panel-user" aria-label="User Management">
+      <!-- Panel Header -->
+      <div class="panel-header header-user">
+        <div class="panel-title-group">
+          <div class="panel-icon icon-user">👤</div>
+          <div>
+            <div class="title-status-row">
+              <h2 class="panel-title">User Management</h2>
+              <span
+                class="status-pill"
+                [class.pill-online]="isUserOnline"
+                [class.pill-offline]="!isUserOnline"
+              >
+                {{ isUserOnline ? '● Live Service' : '● Fallback Store' }}
+              </span>
+            </div>
+            <p class="service-source">Backend: <code>MonitoringWithCICD\Backend</code></p>
+            <div class="panel-endpoint">
+              <span class="endpoint-badge badge-get">API</span>
+              @if (!isEditingUserEndpoint) {
+                <code
+                  class="clickable-code"
+                  (click)="isEditingUserEndpoint = true"
+                  title="Click to change endpoint"
+                >
+                  {{ userApiUrl }}
+                </code>
+                <button
+                  type="button"
+                  class="btn-edit-endpoint"
+                  (click)="isEditingUserEndpoint = true"
+                  title="Edit API endpoint"
+                >
+                  ⚙️
+                </button>
+              } @else {
+                <div class="endpoint-edit-row">
+                  <input
+                    type="text"
+                    [(ngModel)]="customUserEndpoint"
+                    class="input-endpoint"
+                    placeholder="/api/users or http://localhost:5000/api/"
+                  />
+                  <button type="button" class="btn btn-xs btn-primary" (click)="saveUserEndpoint()">
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-secondary"
+                    (click)="isEditingUserEndpoint = false"
+                  >
+                    ✕
+                  </button>
+                </div>
               }
             </div>
-          }
+          </div>
         </div>
-
-        <!-- Email Input -->
-        <div class="form-group">
-          <label for="email" class="form-label">
-            Email Address <span class="required-star">*</span>
-          </label>
-          <input
-            id="email"
-            type="email"
-            formControlName="email"
-            placeholder="e.g. sarah@example.com"
-            class="form-input"
-            [class.input-error]="email?.invalid && (email?.dirty || email?.touched)"
-          />
-          @if (email?.invalid && (email?.dirty || email?.touched)) {
-            <div class="error-feedback">
-              @if (email?.errors?.['required']) {
-                <span>Email is required.</span>
-              }
-              @if (email?.errors?.['email']) {
-                <span>Please enter a valid email address.</span>
-              }
-              @if (email?.errors?.['maxlength']) {
-                <span>Email cannot exceed 250 characters.</span>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="form-actions">
-          <button
-            type="submit"
-            class="btn btn-primary"
-            [disabled]="isSubmitting || userForm.invalid"
-          >
-            @if (isSubmitting) {
-              <span class="spinner-small"></span>
-              <span>Adding...</span>
-            } @else {
-              <span>Add User</span>
-            }
-          </button>
-
+        <div class="panel-actions">
           <button
             type="button"
-            class="btn btn-secondary"
-            (click)="userForm.reset(); clearMessages()"
-            [disabled]="isSubmitting"
+            class="btn btn-refresh"
+            (click)="loadUsers()"
+            [disabled]="isLoadingUsers"
+            title="Refresh users list"
           >
-            Clear
+            ↻ Refresh
           </button>
         </div>
-      </form>
-    </section>
-
-    <!-- Right Column: Users List -->
-    <section class="card list-card">
-      <div class="card-header list-header">
-        <div>
-          <h2 class="card-title">User Directory</h2>
-          <p class="card-desc">All registered users currently stored in PostgreSQL.</p>
-        </div>
-        <button
-          type="button"
-          class="btn btn-refresh"
-          (click)="loadUsers()"
-          [disabled]="isLoading"
-          title="Refresh user list"
-        >
-          ↻ Refresh
-        </button>
       </div>
 
-      <!-- Loading State -->
-      @if (isLoading) {
-        <div class="loading-container">
-          <div class="spinner-large"></div>
-          <p>Loading users from database...</p>
-        </div>
-      }
+      <!-- Panel Notifications -->
+      <div class="panel-notifications">
+        @if (userSuccessMessage) {
+          <div class="alert alert-success" role="alert">
+            <span class="alert-icon">✓</span>
+            <span class="alert-text">{{ userSuccessMessage }}</span>
+            <button
+              type="button"
+              class="alert-close"
+              (click)="clearUserMessages()"
+              aria-label="Close notification"
+            >
+              &times;
+            </button>
+          </div>
+        }
 
-      <!-- Empty State -->
-      @if (!isLoading && users.length === 0) {
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <h3 class="empty-title">No Users Found</h3>
-          <p class="empty-text">There are currently no users in the database. Use the form on the left to add one!</p>
-        </div>
-      }
+        @if (userErrorMessage) {
+          <div class="alert alert-danger" role="alert">
+            <span class="alert-icon">⚠</span>
+            <span class="alert-text">{{ userErrorMessage }}</span>
+            <button
+              type="button"
+              class="alert-close"
+              (click)="clearUserMessages()"
+              aria-label="Close notification"
+            >
+              &times;
+            </button>
+          </div>
+        }
+      </div>
 
-      <!-- Users Table -->
-      @if (!isLoading && users.length > 0) {
-        <div class="table-responsive">
-          <table class="user-table">
-            <thead>
-              <tr>
-                <th class="th-id">ID</th>
-                <th class="th-name">Name</th>
-                <th class="th-email">Email</th>
-                <th class="th-action">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (user of users; track user.id) {
-                <tr class="table-row">
-                  <td class="td-id">
-                    <span class="id-badge">#{{ user.id }}</span>
-                  </td>
-                  <td class="td-name">
-                    <strong>{{ user.name }}</strong>
-                  </td>
-                  <td class="td-email">
-                    <a href="mailto:{{ user.email }}" class="email-link">{{ user.email }}</a>
-                  </td>
-                  <td class="td-action">
-                    <button
-                      type="button"
-                      class="btn btn-danger btn-sm"
-                      (click)="confirmDelete(user.id, user.name)"
-                      [disabled]="deletingUserId === user.id"
-                    >
-                      @if (deletingUserId === user.id) {
-                        <span class="spinner-small"></span>
-                        <span>Deleting...</span>
-                      } @else {
-                        <span>Delete</span>
-                      }
-                    </button>
-                  </td>
-                </tr>
+      <!-- User Create / Edit Form Section -->
+      <div class="panel-form-section" [class.mode-edit]="editingUser">
+        <div class="form-section-header">
+          <div class="form-title-wrap">
+            <h3 class="form-title">
+              @if (editingUser) {
+                <span
+                  >Edit User <span class="accent-badge">#{{ editingUser.id }}</span></span
+                >
+              } @else {
+                <span>Add New User</span>
               }
-            </tbody>
-          </table>
+            </h3>
+            <p class="form-desc">
+              @if (editingUser) {
+                Update name or email address and save changes.
+              } @else {
+                Fill out the form below to register a new user.
+              }
+            </p>
+          </div>
+          @if (editingUser) {
+            <button type="button" class="btn btn-outline-cancel" (click)="cancelEditUser()">
+              ✕ Cancel Edit
+            </button>
+          }
         </div>
-      }
+
+        <form [formGroup]="userForm" (ngSubmit)="onSubmitUser()" novalidate class="entity-form">
+          <div class="form-row">
+            <!-- Full Name Input -->
+            <div class="form-group">
+              <label for="userName" class="form-label">
+                Full Name <span class="required-star">*</span>
+              </label>
+              <input
+                id="userName"
+                type="text"
+                formControlName="name"
+                placeholder="e.g. Sarah Connor"
+                class="form-input"
+                [class.input-error]="name?.invalid && (name?.dirty || name?.touched)"
+              />
+              @if (name?.invalid && (name?.dirty || name?.touched)) {
+                <div class="error-feedback">
+                  @if (name?.errors?.['required']) {
+                    <span>Name is required.</span>
+                  }
+                  @if (name?.errors?.['maxlength']) {
+                    <span>Name cannot exceed 150 characters.</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Email Address Input -->
+            <div class="form-group">
+              <label for="userEmail" class="form-label">
+                Email Address <span class="required-star">*</span>
+              </label>
+              <input
+                id="userEmail"
+                type="email"
+                formControlName="email"
+                placeholder="e.g. sarah@example.com"
+                class="form-input"
+                [class.input-error]="email?.invalid && (email?.dirty || email?.touched)"
+              />
+              @if (email?.invalid && (email?.dirty || email?.touched)) {
+                <div class="error-feedback">
+                  @if (email?.errors?.['required']) {
+                    <span>Email is required.</span>
+                  }
+                  @if (email?.errors?.['email']) {
+                    <span>Please enter a valid email.</span>
+                  }
+                  @if (email?.errors?.['maxlength']) {
+                    <span>Email cannot exceed 250 characters.</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Form Buttons -->
+          <div class="form-actions">
+            @if (editingUser) {
+              <button
+                type="submit"
+                class="btn btn-primary btn-save"
+                [disabled]="isSubmittingUser || userForm.invalid"
+              >
+                @if (isSubmittingUser) {
+                  <span class="spinner-small"></span>
+                  <span>Saving...</span>
+                } @else {
+                  <span>💾 Update User</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="cancelEditUser()"
+                [disabled]="isSubmittingUser"
+              >
+                Cancel
+              </button>
+            } @else {
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="isSubmittingUser || userForm.invalid"
+              >
+                @if (isSubmittingUser) {
+                  <span class="spinner-small"></span>
+                  <span>Adding...</span>
+                } @else {
+                  <span>+ Add User</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="userForm.reset(); clearUserMessages()"
+                [disabled]="isSubmittingUser"
+              >
+                Clear
+              </button>
+            }
+          </div>
+        </form>
+      </div>
+
+      <!-- User Directory Table Section -->
+      <div class="panel-list-section">
+        <div class="list-section-header">
+          <div class="list-header-left">
+            <h3 class="list-title">User Directory</h3>
+            <span class="count-pill">{{ filteredUsers.length }} of {{ users.length }}</span>
+          </div>
+          <div class="search-box">
+            <input
+              type="text"
+              [(ngModel)]="userSearchTerm"
+              placeholder="Search users..."
+              class="search-input"
+            />
+            @if (userSearchTerm) {
+              <button type="button" class="search-clear" (click)="userSearchTerm = ''">
+                &times;
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        @if (isLoadingUsers) {
+          <div class="loading-container">
+            <div class="spinner-large"></div>
+            <p>Loading users from service...</p>
+          </div>
+        }
+
+        <!-- Empty State -->
+        @if (!isLoadingUsers && filteredUsers.length === 0) {
+          <div class="empty-state">
+            <div class="empty-icon">👥</div>
+            <h4 class="empty-title">
+              {{ users.length === 0 ? 'No Users Found' : 'No Matching Users' }}
+            </h4>
+            <p class="empty-text">
+              {{
+                users.length === 0
+                  ? 'Use the form above to add a new user to the service.'
+                  : 'Try adjusting your search criteria.'
+              }}
+            </p>
+          </div>
+        }
+
+        <!-- Table View -->
+        @if (!isLoadingUsers && filteredUsers.length > 0) {
+          <div class="table-responsive">
+            <table class="entity-table">
+              <thead>
+                <tr>
+                  <th class="th-id">ID</th>
+                  <th class="th-name">Name</th>
+                  <th class="th-email">Email</th>
+                  <th class="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (user of filteredUsers; track user.id) {
+                  <tr class="table-row" [class.row-editing]="editingUser?.id === user.id">
+                    <td class="td-id">
+                      <span class="id-badge">#{{ user.id }}</span>
+                    </td>
+                    <td class="td-name">
+                      <strong>{{ user.name }}</strong>
+                    </td>
+                    <td class="td-email">
+                      <a href="mailto:{{ user.email }}" class="email-link">{{ user.email }}</a>
+                    </td>
+                    <td class="td-actions">
+                      <div class="action-btn-group">
+                        <button
+                          type="button"
+                          class="btn btn-action-edit"
+                          (click)="startEditUser(user)"
+                          [disabled]="deletingUserId === user.id"
+                          title="Edit this user"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-action-delete"
+                          (click)="confirmDeleteUser(user.id, user.name)"
+                          [disabled]="deletingUserId === user.id"
+                          title="Delete this user"
+                        >
+                          @if (deletingUserId === user.id) {
+                            <span class="spinner-small"></span>
+                          } @else {
+                            <span>🗑️ Delete</span>
+                          }
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- RIGHT PANEL: EMPLOYEE MANAGEMENT -->
+    <!-- ======================================================== -->
+    <section class="panel-card panel-employee" aria-label="Employee Management">
+      <!-- Panel Header -->
+      <div class="panel-header header-employee">
+        <div class="panel-title-group">
+          <div class="panel-icon icon-employee">💼</div>
+          <div>
+            <div class="title-status-row">
+              <h2 class="panel-title">Employee Management</h2>
+              <span
+                class="status-pill"
+                [class.pill-online]="isEmployeeOnline"
+                [class.pill-offline]="!isEmployeeOnline"
+              >
+                {{ isEmployeeOnline ? '● Live Service' : '● Fallback Store' }}
+              </span>
+            </div>
+            <p class="service-source">Backend: <code>D:\AWSProject\Backend</code></p>
+            <div class="panel-endpoint">
+              <span class="endpoint-badge badge-get">API</span>
+              @if (!isEditingEmployeeEndpoint) {
+                <code
+                  class="clickable-code"
+                  (click)="isEditingEmployeeEndpoint = true"
+                  title="Click to change endpoint"
+                >
+                  {{ employeeApiUrl }}
+                </code>
+                <button
+                  type="button"
+                  class="btn-edit-endpoint"
+                  (click)="isEditingEmployeeEndpoint = true"
+                  title="Edit API endpoint"
+                >
+                  ⚙️
+                </button>
+              } @else {
+                <div class="endpoint-edit-row">
+                  <input
+                    type="text"
+                    [(ngModel)]="customEmployeeEndpoint"
+                    class="input-endpoint"
+                    placeholder="e.g. http://localhost:5001/api/users or /api/employees"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-emp-primary"
+                    (click)="saveEmployeeEndpoint()"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-secondary"
+                    (click)="isEditingEmployeeEndpoint = false"
+                  >
+                    ✕
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button
+            type="button"
+            class="btn btn-refresh"
+            (click)="loadEmployees()"
+            [disabled]="isLoadingEmployees"
+            title="Refresh employees list"
+          >
+            ↻ Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel Notifications -->
+      <div class="panel-notifications">
+        @if (employeeSuccessMessage) {
+          <div class="alert alert-success" role="alert">
+            <span class="alert-icon">✓</span>
+            <span class="alert-text">{{ employeeSuccessMessage }}</span>
+            <button
+              type="button"
+              class="alert-close"
+              (click)="clearEmployeeMessages()"
+              aria-label="Close notification"
+            >
+              &times;
+            </button>
+          </div>
+        }
+
+        @if (employeeErrorMessage) {
+          <div class="alert alert-danger" role="alert">
+            <span class="alert-icon">⚠</span>
+            <span class="alert-text">{{ employeeErrorMessage }}</span>
+            <button
+              type="button"
+              class="alert-close"
+              (click)="clearEmployeeMessages()"
+              aria-label="Close notification"
+            >
+              &times;
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Employee Create / Edit Form Section -->
+      <div class="panel-form-section" [class.mode-edit]="editingEmployee">
+        <div class="form-section-header">
+          <div class="form-title-wrap">
+            <h3 class="form-title">
+              @if (editingEmployee) {
+                <span
+                  >Edit Employee
+                  <span class="accent-badge-emp">#{{ editingEmployee.id }}</span></span
+                >
+              } @else {
+                <span>Add New Employee</span>
+              }
+            </h3>
+            <p class="form-desc">
+              @if (editingEmployee) {
+                Update employee name or email and save changes.
+              } @else {
+                Enter details to register a new employee.
+              }
+            </p>
+          </div>
+          @if (editingEmployee) {
+            <button type="button" class="btn btn-outline-cancel" (click)="cancelEditEmployee()">
+              ✕ Cancel Edit
+            </button>
+          }
+        </div>
+
+        <form
+          [formGroup]="employeeForm"
+          (ngSubmit)="onSubmitEmployee()"
+          novalidate
+          class="entity-form"
+        >
+          <div class="form-row">
+            <!-- Full Name Input -->
+            <div class="form-group">
+              <label for="employeeName" class="form-label">
+                Full Name <span class="required-star">*</span>
+              </label>
+              <input
+                id="employeeName"
+                type="text"
+                formControlName="name"
+                placeholder="e.g. Sarah Connor Employee"
+                class="form-input"
+                [class.input-error]="
+                  employeeName?.invalid && (employeeName?.dirty || employeeName?.touched)
+                "
+              />
+              @if (employeeName?.invalid && (employeeName?.dirty || employeeName?.touched)) {
+                <div class="error-feedback">
+                  @if (employeeName?.errors?.['required']) {
+                    <span>Name is required.</span>
+                  }
+                  @if (employeeName?.errors?.['maxlength']) {
+                    <span>Name cannot exceed 150 characters.</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Email Address Input -->
+            <div class="form-group">
+              <label for="employeeEmail" class="form-label">
+                Email Address <span class="required-star">*</span>
+              </label>
+              <input
+                id="employeeEmail"
+                type="email"
+                formControlName="email"
+                placeholder="e.g. sarah.connor@example.com"
+                class="form-input"
+                [class.input-error]="
+                  employeeEmail?.invalid && (employeeEmail?.dirty || employeeEmail?.touched)
+                "
+              />
+              @if (employeeEmail?.invalid && (employeeEmail?.dirty || employeeEmail?.touched)) {
+                <div class="error-feedback">
+                  @if (employeeEmail?.errors?.['required']) {
+                    <span>Email is required.</span>
+                  }
+                  @if (employeeEmail?.errors?.['email']) {
+                    <span>Please enter a valid email.</span>
+                  }
+                  @if (employeeEmail?.errors?.['maxlength']) {
+                    <span>Email cannot exceed 250 characters.</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Form Buttons -->
+          <div class="form-actions">
+            @if (editingEmployee) {
+              <button
+                type="submit"
+                class="btn btn-emp-primary btn-save"
+                [disabled]="isSubmittingEmployee || employeeForm.invalid"
+              >
+                @if (isSubmittingEmployee) {
+                  <span class="spinner-small"></span>
+                  <span>Saving...</span>
+                } @else {
+                  <span>💾 Update Employee</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="cancelEditEmployee()"
+                [disabled]="isSubmittingEmployee"
+              >
+                Cancel
+              </button>
+            } @else {
+              <button
+                type="submit"
+                class="btn btn-emp-primary"
+                [disabled]="isSubmittingEmployee || employeeForm.invalid"
+              >
+                @if (isSubmittingEmployee) {
+                  <span class="spinner-small"></span>
+                  <span>Adding...</span>
+                } @else {
+                  <span>+ Add Employee</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                (click)="employeeForm.reset(); clearEmployeeMessages()"
+                [disabled]="isSubmittingEmployee"
+              >
+                Clear
+              </button>
+            }
+          </div>
+        </form>
+      </div>
+
+      <!-- Employee Directory Table Section -->
+      <div class="panel-list-section">
+        <div class="list-section-header">
+          <div class="list-header-left">
+            <h3 class="list-title">Employee Directory</h3>
+            <span class="count-pill pill-emp"
+              >{{ filteredEmployees.length }} of {{ employees.length }}</span
+            >
+          </div>
+          <div class="search-box">
+            <input
+              type="text"
+              [(ngModel)]="employeeSearchTerm"
+              placeholder="Search employees..."
+              class="search-input"
+            />
+            @if (employeeSearchTerm) {
+              <button type="button" class="search-clear" (click)="employeeSearchTerm = ''">
+                &times;
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        @if (isLoadingEmployees) {
+          <div class="loading-container">
+            <div class="spinner-large spinner-emp"></div>
+            <p>Loading employees from service...</p>
+          </div>
+        }
+
+        <!-- Empty State -->
+        @if (!isLoadingEmployees && filteredEmployees.length === 0) {
+          <div class="empty-state">
+            <div class="empty-icon">💼</div>
+            <h4 class="empty-title">
+              {{ employees.length === 0 ? 'No Employees Found' : 'No Matching Employees' }}
+            </h4>
+            <p class="empty-text">
+              {{
+                employees.length === 0
+                  ? 'Use the form above to add an employee to the service.'
+                  : 'Try adjusting your search criteria.'
+              }}
+            </p>
+          </div>
+        }
+
+        <!-- Table View -->
+        @if (!isLoadingEmployees && filteredEmployees.length > 0) {
+          <div class="table-responsive">
+            <table class="entity-table">
+              <thead>
+                <tr>
+                  <th class="th-id">ID</th>
+                  <th class="th-name">Name</th>
+                  <th class="th-email">Email</th>
+                  <th class="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (emp of filteredEmployees; track emp.id) {
+                  <tr class="table-row" [class.row-editing]="editingEmployee?.id === emp.id">
+                    <td class="td-id">
+                      <span class="id-badge badge-emp-id">#{{ emp.id }}</span>
+                    </td>
+                    <td class="td-name">
+                      <strong>{{ emp.name }}</strong>
+                    </td>
+                    <td class="td-email">
+                      <a href="mailto:{{ emp.email }}" class="email-link email-emp">{{
+                        emp.email
+                      }}</a>
+                    </td>
+                    <td class="td-actions">
+                      <div class="action-btn-group">
+                        <button
+                          type="button"
+                          class="btn btn-action-edit"
+                          (click)="startEditEmployee(emp)"
+                          [disabled]="deletingEmployeeId === emp.id"
+                          title="Edit this employee"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-action-delete"
+                          (click)="confirmDeleteEmployee(emp.id, emp.name)"
+                          [disabled]="deletingEmployeeId === emp.id"
+                          title="Delete this employee"
+                        >
+                          @if (deletingEmployeeId === emp.id) {
+                            <span class="spinner-small"></span>
+                          } @else {
+                            <span>🗑️ Delete</span>
+                          }
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
     </section>
   </main>
 </div>

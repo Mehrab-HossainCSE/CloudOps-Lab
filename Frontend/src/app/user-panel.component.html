@@ -1,0 +1,106 @@
+<section class="panel">
+  <div class="panel-title-row">
+    <h2 class="card-title">{{ title }}</h2>
+    <span class="header-badge">
+      <span class="badge-dot"></span>
+      <span class="badge-text">{{ users.length }} {{ users.length === 1 ? 'Record' : 'Records' }}</span>
+    </span>
+  </div>
+
+  @if (successMessage) {
+    <div class="alert alert-success" role="alert">
+      <span class="alert-icon">✓</span>
+      <span class="alert-text">{{ successMessage }}</span>
+      <button type="button" class="alert-close" (click)="clearMessages()">&times;</button>
+    </div>
+  }
+  @if (errorMessage) {
+    <div class="alert alert-danger" role="alert">
+      <span class="alert-icon">⚠</span>
+      <span class="alert-text">{{ errorMessage }}</span>
+      <button type="button" class="alert-close" (click)="clearMessages()">&times;</button>
+    </div>
+  }
+
+  <div class="main-grid">
+    <section class="card form-card">
+      <div class="card-header">
+        <h3 class="card-title">Add New</h3>
+      </div>
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()" novalidate class="user-form">
+        <div class="form-group">
+          <label [for]="key + '-name'" class="form-label">Full Name <span class="required-star">*</span></label>
+          <input [id]="key + '-name'" type="text" formControlName="name" class="form-input"
+                 [class.input-error]="name?.invalid && (name?.dirty || name?.touched)" />
+          @if (name?.invalid && (name?.dirty || name?.touched)) {
+            <div class="error-feedback">
+              @if (name?.errors?.['required']) { <span>Name is required.</span> }
+              @if (name?.errors?.['maxlength']) { <span>Name cannot exceed 150 characters.</span> }
+            </div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label [for]="key + '-email'" class="form-label">Email Address <span class="required-star">*</span></label>
+          <input [id]="key + '-email'" type="email" formControlName="email" class="form-input"
+                 [class.input-error]="email?.invalid && (email?.dirty || email?.touched)" />
+          @if (email?.invalid && (email?.dirty || email?.touched)) {
+            <div class="error-feedback">
+              @if (email?.errors?.['required']) { <span>Email is required.</span> }
+              @if (email?.errors?.['email']) { <span>Please enter a valid email address.</span> }
+              @if (email?.errors?.['maxlength']) { <span>Email cannot exceed 250 characters.</span> }
+            </div>
+          }
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="isSubmitting || userForm.invalid">
+            @if (isSubmitting) { <span class="spinner-small"></span><span>Adding...</span> }
+            @else { <span>Add</span> }
+          </button>
+          <button type="button" class="btn btn-secondary"
+                  (click)="userForm.reset(); clearMessages()" [disabled]="isSubmitting">Clear</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card list-card">
+      <div class="card-header list-header">
+        <h3 class="card-title">Directory</h3>
+        <button type="button" class="btn btn-refresh" (click)="loadUsers()" [disabled]="isLoading">↻ Refresh</button>
+      </div>
+
+      @if (isLoading) {
+        <div class="loading-container"><div class="spinner-large"></div><p>Loading...</p></div>
+      }
+      @if (!isLoading && users.length === 0) {
+        <div class="empty-state"><div class="empty-icon">📭</div><h3 class="empty-title">No records found</h3></div>
+      }
+      @if (!isLoading && users.length > 0) {
+        <div class="table-responsive">
+          <table class="user-table">
+            <thead>
+              <tr><th class="th-id">ID</th><th class="th-name">Name</th><th class="th-email">Email</th><th class="th-action">Actions</th></tr>
+            </thead>
+            <tbody>
+              @for (user of users; track user.id) {
+                <tr class="table-row">
+                  <td class="td-id"><span class="id-badge">#{{ user.id }}</span></td>
+                  <td class="td-name"><strong>{{ user.name }}</strong></td>
+                  <td class="td-email"><a [href]="'mailto:' + user.email" class="email-link">{{ user.email }}</a></td>
+                  <td class="td-action">
+                    <button type="button" class="btn btn-danger btn-sm"
+                            (click)="confirmDelete(user.id, user.name)" [disabled]="deletingUserId === user.id">
+                      @if (deletingUserId === user.id) { <span class="spinner-small"></span><span>Deleting...</span> }
+                      @else { <span>Delete</span> }
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+</section>
